@@ -1,22 +1,35 @@
-import {Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTable} from 'typeorm';
-import {Post} from "../../posts/entities/post.entity";
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToMany,
+  ManyToMany,
+  JoinTable,
+} from 'typeorm';
+import { Post } from '../../posts/entities/post.entity';
 
 @Entity()
 export class UserItem {
-    @PrimaryGeneratedColumn()
-    userId: number; // Assuming 'userId' is of type number
+  @PrimaryGeneratedColumn('uuid')
+  userId: string; // Assuming 'userId' is of type number
 
-    @Column()
-    fullName: string;
+  @Column()
+  fullName: string;
 
-    @OneToMany(() => Post, post => post.user)
-    posts: Post[];
+  @Column({ unique: true })
+  username: string;
 
-    @ManyToMany(() => UserItem)
-    @JoinTable()
-    friends: UserItem[];
+  @Column()
+  password: string;
 
-    @ManyToMany(() => UserItem)
-    @JoinTable()
-    following: UserItem[];
+  @OneToMany(() => Post, (post) => post.user)
+  posts: Post[];
+
+  @ManyToMany(() => UserItem)
+  @JoinTable()
+  friends: UserItem[];
+
+  @ManyToMany(() => UserItem)
+  @JoinTable()
+  following: UserItem[];
 }

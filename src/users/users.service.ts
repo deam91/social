@@ -8,6 +8,8 @@ import { Repository } from 'typeorm';
 import { UserItem } from './entities/user-item.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Type200 } from '../core/dto/types';
+import * as bcrypt from 'bcrypt';
+import { saltOrRounds } from 'src/core/constants';
 
 @Injectable()
 export class UsersService {
@@ -16,15 +18,19 @@ export class UsersService {
     private userItemRepository: Repository<UserItem>,
   ) {}
 
-  create(createUserDto: UserRequestDto): Promise<UserItem> {
+  async create(createUserDto: UserRequestDto): Promise<UserItem> {
     try {
+      createUserDto.password = await bcrypt.hash(
+        createUserDto.password,
+        saltOrRounds,
+      );
       return this.userItemRepository.save(createUserDto);
     } catch (e) {
       throw new InternalServerErrorException();
     }
   }
 
-  async friendship(userId: number, friendId: number): Promise<Type200> {
+  async friendship(userId: string, friendId: string): Promise<Type200> {
     const user = await this.userItemRepository.findOne({
       where: { userId: userId },
       relations: ['friends'],
@@ -51,7 +57,7 @@ export class UsersService {
     return new Type200('Successfully completed the operation.');
   }
 
-  async follow(userId: number, followerId: number): Promise<Type200> {
+  async follow(userId: string, followerId: string): Promise<Type200> {
     const follower = await this.userItemRepository.findOne({
       where: { userId: followerId },
       relations: ['following'],
@@ -78,5 +84,9 @@ export class UsersService {
     await this.userItemRepository.save(follower);
 
     return new Type200('Successfully completed the operation.');
+  }
+
+  async findOne(username: string): Promise<UserItem | undefined> {
+    return this.userItemRepository.findOne({ where: { username: username } });
   }
 }
