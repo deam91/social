@@ -1,8 +1,8 @@
 import { IsOptional, IsNumber, IsString, IsIn } from 'class-validator';
 
 export class PostRequestDto {
-  @IsNumber()
-  userId: number; // assuming userId is a number
+  @IsString()
+  userId: string; // assuming userId is a number
 
   @IsString()
   text: string; // assuming text is a string
@@ -14,10 +14,10 @@ export class PostRequestDto {
 }
 
 export class PostCreateSuccessDto {
-  constructor(postId: number) {
+  constructor(postId: string) {
     this.postId = postId;
   }
 
   @IsNumber()
-  postId: number;
+  postId: string;
 }

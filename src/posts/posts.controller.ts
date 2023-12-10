@@ -5,15 +5,18 @@ import {
   Param,
   BadRequestException,
   InternalServerErrorException,
+  UseGuards,
 } from '@nestjs/common';
 import { PostsService } from './posts.service';
 import { PostRequestDto } from './dto/create-post.dto';
 import { LikeDislikeDto } from './dto/like_dislike.dto';
+import { AuthGuard } from 'src/auth/auth.guard';
 
 @Controller('posts')
 export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
+  @UseGuards(AuthGuard)
   @Post()
   create(@Body() createPostDto: PostRequestDto) {
     try {
@@ -24,10 +27,11 @@ export class PostsController {
     }
   }
 
+  @UseGuards(AuthGuard)
   @Post(':postId/like')
   async like(
-    @Param('postId') postId: number,
-    @Body('userId') userId: number,
+    @Param('postId') postId: string,
+    @Body('userId') userId: string,
     @Body('like') like: boolean,
   ) {
     try {

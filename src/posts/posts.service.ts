@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PostCreateSuccessDto, PostRequestDto } from './dto/create-post.dto';
 import { Repository } from 'typeorm';
-import { Post } from './entities/post.entity';
+import { Post, PostVisibility } from './entities/post.entity';
 import { PostCreateSuccess } from '../models/generated_api';
 import { UserItem } from '../users/entities/user-item.entity';
 import { LikeDislikeDto } from './dto/like_dislike.dto';
@@ -30,33 +30,64 @@ export class PostsService {
     // Create a new post entity and map properties from the DTO
     const post = new Post();
     post.text = text;
-    post.visibility = visibility;
+    post.visibility =
+      visibility === PostVisibility.PUBLIC
+        ? PostVisibility.PUBLIC
+        : PostVisibility.PRIVATE;
     post.user = user; // Associate the post with the found user
 
     const result = await this.postRepository.save(post);
     return new PostCreateSuccessDto(result.id);
   }
 
-  async findAll(userId: number) {
-    // Find the user item by ID
-    const user = await this.userItemRepository.findOne({
-      where: { userId },
-      relations: ['friends', 'following'],
-    });
-    if (!user) {
-      throw new BadRequestException('User not found');
-    }
-    const friends = user.friends.map((e) => e.userId);
-    const following = user.following.map((e) => e.userId);
-    const uniqueIds = Array.from(new Set([...friends, ...following]));
-
-    return this.postRepository
+  async findAll(username: string, authUser: any) {
+    let query = this.postRepository
       .createQueryBuilder('post')
-      .innerJoin('post.user', 'user')
-      .where("user.userId IN (:...userIds) AND post.visibility = 'public'", {
-        userIds: uniqueIds,
-      })
-      .orWhere('user.userId = :userId', { userId })
+      .innerJoin('post.user', 'user');
+    // If I am authenticated
+    if (authUser) {
+      // If /walls get my own wall
+      if (!username || username == '') {
+        const me = await this.userItemRepository.findOne({
+          where: { userId: authUser.sub },
+          relations: ['friends', 'following'],
+        });
+        if (!me) {
+          throw new BadRequestException('User not found');
+        }
+        query = query.where('user.username = :me', { me: me.username });
+        const friends = me.friends.map((e) => e.userId);
+        const following = me.following.map((e) => e.userId);
+        const uniqueIds = Array.from(new Set([...friends, ...following]));
+        query = query.orWhere(
+          "user.userId IN (:...userIds) AND post.visibility = 'public'",
+          {
+            userIds: uniqueIds,
+          },
+        );
+      }
+      // If /walls/charles get charles public posts
+      else {
+        const user = await this.userItemRepository.findOne({
+          where: { username },
+          relations: ['friends', 'following'],
+        });
+        if (!user) {
+          throw new BadRequestException('User not found');
+        }
+        //
+        query = query
+          .where('user.username = :username', { username })
+          .where("post.visibility = 'public'");
+      }
+    } else if (username && username != '') {
+      query = query
+        .where('user.username = :username', { username })
+        .where("post.visibility = 'public'");
+    } else
+      throw new BadRequestException('You must specify a username parameter');
+
+    return query
       .orderBy('post.postedOn', 'DESC')
       .select([
         'user.userId as userId',

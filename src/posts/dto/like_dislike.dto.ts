@@ -1,18 +1,18 @@
-import {IsNumber, IsBoolean} from 'class-validator';
+import { IsNumber, IsBoolean, IsString } from 'class-validator';
 
 export class LikeDislikeDto {
-    @IsNumber()
-    userId: number;
+  @IsString()
+  userId: string;
 
-    @IsNumber()
-    postId: number
+  @IsNumber()
+  postId: string;
 
-    @IsBoolean()
-    like: boolean
+  @IsBoolean()
+  like: boolean;
 
-    constructor(userId: number, postId: number, like: boolean) {
-        this.userId = userId;
-        this.postId = postId;
-        this.like = like;
-    }
+  constructor(userId: string, postId: string, like: boolean) {
+    this.userId = userId;
+    this.postId = postId;
+    this.like = like;
+  }
 }
