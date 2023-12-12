@@ -2,7 +2,7 @@
 set -e
 cmd="$@"
 
-until PGPASSWORD=$POSTGRES_PASSWORD psql -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -c '\q'; do
+until PGPASSWORD=$DB_PASSWORD psql -h "$DB_HOST" -U "$DB_USER" -c '\q'; do
   >&2 echo "Database is loading - sleeping"
   sleep 3
 done
