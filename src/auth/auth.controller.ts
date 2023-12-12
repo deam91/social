@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthGuard } from './auth.guard';
-import { Public } from 'src/core/constants';
+import { Public } from '../core/constants';
 
 @Controller('auth')
 export class AuthController {

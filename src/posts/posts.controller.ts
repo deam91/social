@@ -10,7 +10,7 @@ import {
 import { PostsService } from './posts.service';
 import { PostRequestDto } from './dto/create-post.dto';
 import { LikeDislikeDto } from './dto/like_dislike.dto';
-import { AuthGuard } from 'src/auth/auth.guard';
+import { AuthGuard } from '../auth/auth.guard';
 
 @Controller('posts')
 export class PostsController {

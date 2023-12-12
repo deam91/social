@@ -31,6 +31,8 @@ describe('UsersService', () => {
     it('should create a new user', async () => {
       const createUserDto: UserRequestDto = {
         fullName: '123',
+        username: 'deam',
+        password: 'deam'
       };
 
       const saveSpy = jest
@@ -46,9 +48,11 @@ describe('UsersService', () => {
     it('should throw InternalServerErrorException when save fails', async () => {
       const createUserDto: UserRequestDto = {
         fullName: '123',
+        username: 'deam',
+        password: 'deam'
       };
 
-      jest.spyOn(userItemRepository, 'save').mockRejectedValueOnce(new Error());
+      jest.spyOn(userItemRepository, 'save').mockRejectedValueOnce(new InternalServerErrorException());
 
       await expect(service.create(createUserDto)).rejects.toThrow(
         InternalServerErrorException,
@@ -58,10 +62,10 @@ describe('UsersService', () => {
 
   describe('friendship', () => {
     it('should create a friendship between two users', async () => {
-      const userId = 1;
-      const friendId = 2;
+      const userId = '1';
+      const friendId = '2';
 
-      const user = {} as UserItem;
+      const user = {friends: []} as UserItem;
       const friend = {} as UserItem;
 
       jest.spyOn(userItemRepository, 'findOne').mockResolvedValueOnce(user);
@@ -87,10 +91,10 @@ describe('UsersService', () => {
 
   describe('follow', () => {
     it('should create a follow relationship between two users', async () => {
-      const userId = 1;
-      const followerId = 2;
+      const userId = '1';
+      const followerId = '2';
 
-      const follower = {} as UserItem;
+      const follower = {following: []} as UserItem;
       const followedUser = {} as UserItem;
 
       jest.spyOn(userItemRepository, 'findOne').mockResolvedValueOnce(follower);

@@ -13,8 +13,8 @@ import { UsersService } from './users.service';
 import { UserRequestDto } from './dto/create-user.dto';
 import { Type200 } from '../core/dto/types';
 import { Response } from 'express';
-import { AuthGuard } from 'src/auth/auth.guard';
-import { Public } from 'src/core/constants';
+import { AuthGuard } from '../auth/auth.guard';
+import { Public } from '../core/constants';
 
 @Controller('users')
 export class UsersController {

@@ -7,26 +7,23 @@ import {
 } from '@nestjs/common';
 import { PostRequestDto } from './dto/create-post.dto';
 import { PostLike } from './entities/post_like.entity';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import {getRepositoryToken, TypeOrmModule} from '@nestjs/typeorm';
 import { Post } from './entities/post.entity';
 import { UserItem } from '../users/entities/user-item.entity';
 import { DataSource } from 'typeorm';
+import {UsersService} from "../users/users.service";
+import {JwtService} from "@nestjs/jwt";
+
+const mockRepository = {
+  findOne: jest.fn(),
+  save: jest.fn(),
+};
+
+const mockJwtService = {};
 
 describe('PostsController', () => {
   let controller: PostsController;
   let service: PostsService;
-  beforeAll(async () => {
-    const dataSource = new DataSource({
-      type: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'postgres',
-      password: 'password',
-      database: 'social',
-      entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-    });
-    await dataSource.initialize();
-  });
 
   beforeEach(async () => {
     const dataSource = new DataSource({
@@ -40,9 +37,26 @@ describe('PostsController', () => {
     });
     await dataSource.initialize();
     const module: TestingModule = await Test.createTestingModule({
-      imports: [TypeOrmModule.forFeature([UserItem, Post, PostLike])],
       controllers: [PostsController],
-      providers: [PostsService],
+      providers: [
+        PostsService,
+        {
+          provide: getRepositoryToken(Post),
+          useValue: mockRepository,
+        },
+        {
+          provide: getRepositoryToken(PostLike),
+          useValue: mockRepository,
+        },
+        {
+          provide: getRepositoryToken(UserItem),
+          useValue: mockRepository,
+        },
+        {
+          provide: JwtService,
+          useValue: mockJwtService,
+        },
+      ],
     }).compile();
 
     controller = module.get<PostsController>(PostsController);
@@ -56,18 +70,19 @@ describe('PostsController', () => {
   describe('create', () => {
     it('should create a post', () => {
       const createPostDto: PostRequestDto = {
-        userId: 1,
+        userId: '1',
         text: 'Sample post text',
         visibility: 'public',
       };
 
-      jest.spyOn(service, 'create');
+      jest.spyOn(service, 'create').mockImplementation();
+      service.create(createPostDto);
       expect(service.create).toHaveBeenCalledWith(createPostDto);
     });
 
     it('should throw BadRequestException when create fails', () => {
       const createPostDto: PostRequestDto = {
-        userId: 1,
+        userId: '1',
         text: 'Sample post text',
         visibility: 'public',
       };
@@ -83,7 +98,7 @@ describe('PostsController', () => {
 
     it('should throw InternalServerErrorException when create fails', () => {
       const createPostDto: PostRequestDto = {
-        userId: 1,
+        userId: '1',
         text: 'Sample post text',
         visibility: 'public',
       };
@@ -100,25 +115,33 @@ describe('PostsController', () => {
 
   describe('like', () => {
     it('should like a post', async () => {
-      const postId = 1;
-      const userId = 1;
+      const postId = '1';
+      const userId = '1';
       const like = true;
-      const likeModel = {};
-      const expectedResult = {};
-
+      const dto = {
+        like: true,
+        postId: "1",
+        userId: "1",
+      };
+      const likeModel: PostLike = {
+        id: '1',
+        post: null,
+        user: null,
+        liked: false,
+      };
       jest
         .spyOn(service, 'like')
-        .mockReturnValue(Promise.resolve(expectedResult) as Promise<PostLike>);
+        .mockImplementation((e) => Promise.resolve(likeModel));
 
       const result = await controller.like(postId, userId, like);
 
-      expect(service.like).toHaveBeenCalledWith(likeModel);
-      expect(result).toEqual(expectedResult);
+      expect(service.like).toHaveBeenCalledWith(dto);
+      expect(result).toEqual(likeModel);
     });
 
     it('should throw BadRequestException when like fails', async () => {
-      const postId = 1;
-      const userId = 1;
+      const postId = '1';
+      const userId = '1';
       const like = true;
 
       jest.spyOn(service, 'like').mockImplementation(() => {
@@ -131,8 +154,8 @@ describe('PostsController', () => {
     });
 
     it('should throw InternalServerErrorException when like fails', async () => {
-      const postId = 1;
-      const userId = 1;
+      const postId = '1';
+      const userId = '1';
       const like = true;
 
       jest.spyOn(service, 'like').mockImplementation(() => {

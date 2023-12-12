@@ -9,7 +9,6 @@ import { UserItem } from './entities/user-item.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Type200 } from '../core/dto/types';
 import * as bcrypt from 'bcrypt';
-import { saltOrRounds } from 'src/core/constants';
 
 @Injectable()
 export class UsersService {
@@ -22,7 +21,7 @@ export class UsersService {
     try {
       createUserDto.password = await bcrypt.hash(
         createUserDto.password,
-        saltOrRounds,
+        10,
       );
       return this.userItemRepository.save(createUserDto);
     } catch (e) {

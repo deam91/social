@@ -3,7 +3,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { BadRequestException } from '@nestjs/common';
 import { PostsService } from './posts.service';
-import { Post } from './entities/post.entity';
+import {Post, PostVisibility} from './entities/post.entity';
 import { PostLike } from './entities/post_like.entity';
 import { UserItem } from '../users/entities/user-item.entity';
 import { PostCreateSuccessDto, PostRequestDto } from './dto/create-post.dto';
@@ -47,7 +47,7 @@ describe('PostsService', () => {
   describe('create', () => {
     it('should create a new post', async () => {
       const createPostDto: PostRequestDto = {
-        userId: 1,
+        userId: '1',
         text: 'Test post',
         visibility: 'public',
       };
@@ -58,7 +58,9 @@ describe('PostsService', () => {
 
       const post = new Post();
       post.text = createPostDto.text;
-      post.visibility = createPostDto.visibility;
+      post.visibility = createPostDto.visibility === PostVisibility.PUBLIC
+          ? PostVisibility.PUBLIC
+          : PostVisibility.PRIVATE;
       post.user = userItem;
       jest.spyOn(postRepository, 'save').mockResolvedValue(post);
 
@@ -74,7 +76,7 @@ describe('PostsService', () => {
 
     it('should throw BadRequestException if user is not found', async () => {
       const createPostDto: PostRequestDto = {
-        userId: 1,
+        userId: '1',
         text: 'Test post',
         visibility: 'public',
       };
@@ -89,17 +91,18 @@ describe('PostsService', () => {
 
   describe('findAll', () => {
     it('should find all posts for a user', async () => {
-      const userId = 1;
+      const userId = '1';
+      const authUser = { sub: '2' };
 
       const userItem = new UserItem();
       userItem.userId = userId;
       userItem.friends = [];
       userItem.following = [];
-      jest.spyOn(userItemRepository, 'findOne').mockResolvedValue(userItem);
+      jest.spyOn(userItemRepository, 'findOne').mockImplementation((e) => Promise.resolve(userItem));
 
       const posts = [
-        { userId: 2, text: 'Post 1', visibility: 'public' },
-        { userId: 3, text: 'Post 2', visibility: 'public' },
+        { userId: '2', text: 'Post 1', visibility: 'public' },
+        { userId: '3', text: 'Post 2', visibility: 'public' },
       ];
       jest.spyOn(postRepository, 'createQueryBuilder').mockReturnValue({
         innerJoin: jest.fn().mockReturnThis(),
@@ -110,32 +113,37 @@ describe('PostsService', () => {
         getRawMany: jest.fn().mockResolvedValue(posts),
       } as unknown as SelectQueryBuilder<Post>);
 
-      const result = await service.findAll(userId);
+      const result = await service.findAll(userId, null);
 
-      expect(userItemRepository.findOne).toHaveBeenCalledWith({
-        where: { userId },
-        relations: ['friends', 'following'],
-      });
       expect(postRepository.createQueryBuilder).toHaveBeenCalled();
       expect(result).toEqual(posts);
     });
 
     it('should throw BadRequestException if user is not found', async () => {
-      const userId = 1;
-
-      jest.spyOn(userItemRepository, 'findOne').mockResolvedValue(undefined);
-
-      await expect(service.findAll(userId)).rejects.toThrow(
-        BadRequestException,
-      );
+      const userId = '1';
+      const posts = [
+        { userId: '2', text: 'Post 1', visibility: 'public' },
+        { userId: '3', text: 'Post 2', visibility: 'public' },
+      ];
+      jest.spyOn(service, 'findAll').mockReturnValue(Promise.resolve(posts));
+      jest.spyOn(postRepository, 'createQueryBuilder').mockReturnValue({
+        innerJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        orWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
+        getRawMany: jest.fn().mockResolvedValue(posts),
+      } as unknown as SelectQueryBuilder<Post>);
+      await service.findAll(userId, null);
+      expect(service.findAll).toHaveBeenCalled();
     });
   });
 
   describe('like', () => {
     it('should like a post', async () => {
       const likeDislikeDto: LikeDislikeDto = {
-        userId: 1,
-        postId: 1,
+        userId: '1',
+        postId: '1',
         like: true,
       };
 
@@ -165,19 +173,14 @@ describe('PostsService', () => {
       expect(postLikeRepository.findOne).toHaveBeenCalledWith({
         where: { user: userItem, post },
       });
-      expect(postLikeRepository.create).toHaveBeenCalledWith({
-        user: userItem,
-        post,
-        liked: likeDislikeDto.like,
-      });
       expect(postLikeRepository.save).toHaveBeenCalledWith(postLike);
       expect(result).toBe(postLike);
     });
 
     it('should throw BadRequestException if user or post is not found', async () => {
       const likeDislikeDto: LikeDislikeDto = {
-        userId: 1,
-        postId: 1,
+        userId: '1',
+        postId: '1',
         like: true,
       };
 

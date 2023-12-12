@@ -5,29 +5,25 @@ import { UserRequestDto } from './dto/create-user.dto';
 import {
   BadRequestException,
   HttpStatus,
-  InternalServerErrorException,
+  InternalServerErrorException, SetMetadata,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { UserItem } from './entities/user-item.entity';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
+import {getRepositoryToken, TypeOrmModule} from '@nestjs/typeorm';
+import {DataSource, Repository} from 'typeorm';
+import {JwtService} from "@nestjs/jwt";
+import {Type200} from "../core/dto/types";
+
+const mockRepository = {
+    findOne: jest.fn(),
+    save: jest.fn(),
+};
+
+const mockJwtService = {};
 
 describe('UsersController', () => {
   let controller: UsersController;
   let usersService: UsersService;
-
-  beforeAll(async () => {
-    const dataSource = new DataSource({
-      type: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'postgres',
-      password: 'password',
-      database: 'social',
-      entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-    });
-    await dataSource.initialize();
-  });
 
   beforeEach(async () => {
     const dataSource = new DataSource({
@@ -41,9 +37,18 @@ describe('UsersController', () => {
     });
     await dataSource.initialize();
     const module: TestingModule = await Test.createTestingModule({
-      imports: [TypeOrmModule.forFeature([UserItem])],
       controllers: [UsersController],
-      providers: [UsersService],
+      providers: [
+        UsersService,
+        {
+          provide: getRepositoryToken(UserItem),
+          useValue: mockRepository,
+        },
+        {
+          provide: JwtService,
+          useValue: mockJwtService,
+        },
+      ],
     }).compile();
 
     controller = module.get<UsersController>(UsersController);
@@ -58,13 +63,17 @@ describe('UsersController', () => {
     it('should create a user and return the user ID', async () => {
       const createUserDto: UserRequestDto = {
         fullName: '123',
+        username: '123',
+        password: '123',
       };
       const createdUser: UserItem = {
         fullName: '123',
+        username: '123',
+        password: '123',
         posts: [],
         friends: [],
         following: [],
-        userId: 1,
+        userId: '1',
       };
 
       jest.spyOn(usersService, 'create').mockResolvedValue(createdUser);
@@ -78,10 +87,10 @@ describe('UsersController', () => {
 
   describe('addFriend', () => {
     it('should add a friend and return the response', async () => {
-      const userId = 1;
-      const friendId = 2;
+      const userId = '59759d0a-7de7-4595-b1b1-650d757e3893';
+      const friendId = 'ce62799d-c123-490b-a434-3fd49e4db75d';
 
-      jest.spyOn(usersService, 'friendship');
+      jest.spyOn(usersService, 'friendship').mockImplementation((e) => Promise.resolve(new Type200('')));
 
       const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
 
@@ -92,8 +101,8 @@ describe('UsersController', () => {
     });
 
     it('should handle errors and throw appropriate exceptions', async () => {
-      const userId = 1;
-      const friendId = 2;
+      const userId = '59759d0a-7de7-4595-b1b1-650d757e3893';
+      const friendId = 'ce62799d-c123-490b-a434-3fd49e4db75d';
       const error = new BadRequestException();
 
       jest.spyOn(usersService, 'friendship').mockRejectedValue(error);
@@ -102,16 +111,16 @@ describe('UsersController', () => {
 
       await expect(
         controller.addFriend(res as unknown as Response, userId, friendId),
-      ).rejects.toThrow(InternalServerErrorException);
+      ).rejects.toThrow(BadRequestException);
     });
   });
 
   describe('follow', () => {
     it('should follow a user and return the response', async () => {
-      const userId = 1;
-      const followerId = 2;
+      const userId = '59759d0a-7de7-4595-b1b1-650d757e3893';
+      const followerId = 'ce62799d-c123-490b-a434-3fd49e4db75d';
 
-      jest.spyOn(usersService, 'follow');
+      jest.spyOn(usersService, 'follow').mockImplementation((e) => Promise.resolve(new Type200('')));
 
       const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
 
@@ -121,8 +130,8 @@ describe('UsersController', () => {
     });
 
     it('should handle errors and throw appropriate exceptions', async () => {
-      const userId = 1;
-      const followerId = 2;
+      const userId = '59759d0a-7de7-4595-b1b1-650d757e3893';
+      const followerId = 'ce62799d-c123-490b-a434-3fd49e4db75d';
       const error = new BadRequestException();
 
       jest.spyOn(usersService, 'follow').mockRejectedValue(error);
@@ -131,7 +140,7 @@ describe('UsersController', () => {
 
       await expect(
         controller.follow(res as unknown as Response, userId, followerId),
-      ).rejects.toThrow(InternalServerErrorException);
+      ).rejects.toThrow(BadRequestException);
     });
   });
 });

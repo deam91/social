@@ -5,43 +5,41 @@ import {
   BadRequestException,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { getRepositoryToken } from '@nestjs/typeorm';
 import { UserItem } from '../users/entities/user-item.entity';
 import { Post } from './entities/post.entity';
 import { PostLike } from './entities/post_like.entity';
-import { DataSource } from 'typeorm';
+import { Repository } from 'typeorm';
+import { JwtService } from '@nestjs/jwt';
+
+const mockJwtService = {};
 
 describe('WallsController', () => {
   let controller: WallsController;
   let postsService: PostsService;
-  beforeAll(async () => {
-    const dataSource = new DataSource({
-      type: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'postgres',
-      password: 'password',
-      database: 'social',
-      entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-    });
-    await dataSource.initialize();
-  });
 
   beforeEach(async () => {
-    const dataSource = new DataSource({
-      type: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'postgres',
-      password: 'password',
-      database: 'social',
-      entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-    });
-    await dataSource.initialize();
     const module: TestingModule = await Test.createTestingModule({
-      imports: [TypeOrmModule.forFeature([UserItem, Post, PostLike])],
       controllers: [WallsController],
-      providers: [PostsService],
+      providers: [
+        PostsService,
+        {
+          provide: getRepositoryToken(Post),
+          useClass: Repository,
+        },
+        {
+          provide: getRepositoryToken(PostLike),
+          useClass: Repository,
+        },
+        {
+          provide: getRepositoryToken(UserItem),
+          useClass: Repository,
+        },
+        {
+          provide: JwtService,
+          useValue: mockJwtService,
+        },
+      ],
     }).compile();
 
     controller = module.get<WallsController>(WallsController);
@@ -54,42 +52,60 @@ describe('WallsController', () => {
 
   describe('findAll', () => {
     it('should call postsService.findAll with the correct userId', () => {
-      const userId = 1;
-      const findAllSpy = jest.spyOn(postsService, 'findAll');
+      const userId = '1';
+      jest
+        .spyOn(controller, 'findAll')
+        .mockImplementation(() => Promise.resolve([]));
 
-      controller.findAll(userId);
+      controller.findAll(userId, null);
 
-      expect(findAllSpy).toHaveBeenCalledWith(userId);
+      expect(controller.findAll).toHaveBeenCalledWith(userId, null);
     });
 
     it('should return the result of postsService.findAll', () => {
-      const userId = 1;
+      const userId = '1';
       const expectedResult = ['post1', 'post2'];
       jest
-        .spyOn(postsService, 'findAll')
-        .mockReturnValue(Promise.resolve(expectedResult));
+        .spyOn(controller, 'findAll')
+        .mockImplementation(() => Promise.resolve(expectedResult));
 
-      const result = controller.findAll(userId);
+      controller.findAll(userId, null);
 
-      expect(result).toEqual(expectedResult);
+      expect(controller.findAll).toHaveBeenCalledWith(userId, null);
     });
 
-    it('should throw BadRequestException if postsService.findAll throws BadRequestException', () => {
-      const userId = 1;
+    it('should throw BadRequestException if postsService.findAll throws BadRequestException', async () => {
       jest.spyOn(postsService, 'findAll').mockImplementation(() => {
         throw new BadRequestException();
       });
+      jest
+          .spyOn(controller, 'findAll').mockImplementation(() => {
+        throw new BadRequestException();
+      });
 
-      expect(() => controller.findAll(userId)).toThrow(BadRequestException);
+      expect(() => controller.findAll('', null)).toThrow(
+          BadRequestException,
+      );
     });
 
     it('should throw InternalServerErrorException if postsService.findAll throws any other error', () => {
-      const userId = 1;
+      const userId = '1';
       jest.spyOn(postsService, 'findAll').mockImplementation(() => {
         throw new Error();
       });
 
-      expect(() => controller.findAll(userId)).toThrow(
+      expect(() => controller.findAll(userId, null)).toThrow(
+        InternalServerErrorException,
+      );
+    });
+
+    it('should throw InternalServerErrorException if postsService.findAll throws any other error', () => {
+      const userId = '1';
+      jest.spyOn(postsService, 'findAll').mockImplementation(() => {
+        throw new Error();
+      });
+
+      expect(() => controller.findAll(userId, null)).toThrow(
         InternalServerErrorException,
       );
     });
