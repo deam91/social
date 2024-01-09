@@ -1,10 +1,10 @@
-import { IsNumber, IsBoolean, IsString } from 'class-validator';
+import { IsBoolean, IsUUID } from 'class-validator';
 
 export class LikeDislikeDto {
-  @IsString()
+  @IsUUID()
   userId: string;
 
-  @IsNumber()
+  @IsUUID()
   postId: string;
 
   @IsBoolean()
