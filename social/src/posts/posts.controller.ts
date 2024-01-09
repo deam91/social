@@ -2,7 +2,6 @@ import {
   Controller,
   Post,
   Body,
-  Param,
   BadRequestException,
   InternalServerErrorException,
   UseGuards,
@@ -11,12 +10,14 @@ import { PostsService } from './posts.service';
 import { PostRequestDto } from './dto/create-post.dto';
 import { LikeDislikeDto } from './dto/like_dislike.dto';
 import { AuthGuard } from '../auth/auth.guard';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
 @Controller('posts')
 export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
   @UseGuards(AuthGuard)
+  @ApiBearerAuth('JWT')
   @Post()
   create(@Body() createPostDto: PostRequestDto) {
     try {
@@ -28,15 +29,11 @@ export class PostsController {
   }
 
   @UseGuards(AuthGuard)
+  @ApiBearerAuth('JWT')
   @Post(':postId/like')
-  async like(
-    @Param('postId') postId: string,
-    @Body('userId') userId: string,
-    @Body('like') like: boolean,
-  ) {
+  async like(@Body() postLikeDto: LikeDislikeDto) {
     try {
-      const likeModel = new LikeDislikeDto(userId, postId, like);
-      return this.postsService.like(likeModel);
+      return this.postsService.like(postLikeDto);
     } catch (e) {
       if (e instanceof BadRequestException) throw e;
       throw new InternalServerErrorException();

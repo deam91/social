@@ -9,7 +9,8 @@ import {
 } from '@nestjs/common';
 import { PostsService } from './posts.service';
 import { AnonymousOrAuthenticatedGuard } from '../auth/auth.guard';
-import {rethrow} from "@nestjs/core/helpers/rethrow";
+import { rethrow } from '@nestjs/core/helpers/rethrow';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
 @Controller('walls')
 export class WallsController {
@@ -28,6 +29,7 @@ export class WallsController {
 
   @UseGuards(AnonymousOrAuthenticatedGuard)
   @Get('')
+  @ApiBearerAuth('JWT')
   find(@Request() req) {
     try {
       return this.postsService.findAll('', req.user);

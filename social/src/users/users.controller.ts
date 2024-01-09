@@ -15,6 +15,7 @@ import { Type200 } from '../core/dto/types';
 import { Response } from 'express';
 import { AuthGuard } from '../auth/auth.guard';
 import { Public } from '../core/constants';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
 @Controller('users')
 export class UsersController {
@@ -28,6 +29,7 @@ export class UsersController {
   }
 
   @UseGuards(AuthGuard)
+  @ApiBearerAuth('JWT')
   @Post(':userId/friends/:friendId')
   async addFriend(
     @Res() res: Response,
@@ -47,6 +49,7 @@ export class UsersController {
   }
 
   @UseGuards(AuthGuard)
+  @ApiBearerAuth('JWT')
   @Post(':userId/followers/:followerId')
   async follow(
     @Res() res: Response,

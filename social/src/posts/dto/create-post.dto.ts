@@ -1,7 +1,13 @@
-import { IsOptional, IsNumber, IsString, IsIn } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsOptional, IsNumber, IsString, IsIn, IsUUID } from 'class-validator';
+
+enum VisibilityType {
+  public = 'public',
+  private = 'private',
+}
 
 export class PostRequestDto {
-  @IsString()
+  @IsUUID()
   userId: string; // assuming userId is a number
 
   @IsString()
@@ -10,6 +16,11 @@ export class PostRequestDto {
   @IsOptional()
   @IsString()
   @IsIn(['public', 'private'])
+  @ApiProperty({
+    enum: VisibilityType,
+    enumName: 'VisibilityType',
+    example: [VisibilityType.private, VisibilityType.public],
+  })
   visibility?: 'public' | 'private'; // enum-like field for visibility
 }
 
