@@ -8,6 +8,7 @@ import {
   InternalServerErrorException,
   BadRequestException,
   UseGuards,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UserRequestDto } from './dto/create-user.dto';
@@ -16,6 +17,7 @@ import { Response } from 'express';
 import { AuthGuard } from '../auth/auth.guard';
 import { Public } from '../core/constants';
 import { ApiBearerAuth } from '@nestjs/swagger';
+import { Protocol } from 'src/core/params/protocol.param';
 
 @Controller('users')
 export class UsersController {
@@ -23,7 +25,11 @@ export class UsersController {
 
   @Public()
   @Post()
-  async create(@Body() createUserDto: UserRequestDto) {
+  async create(
+    @Protocol('https') protocol: string,
+    @Body() createUserDto: UserRequestDto,
+  ) {
+    console.log(`Protocol: ${protocol}`);
     const user = await this.usersService.create(createUserDto);
     return user.userId;
   }
@@ -33,8 +39,8 @@ export class UsersController {
   @Post(':userId/friends/:friendId')
   async addFriend(
     @Res() res: Response,
-    @Param('userId') userId: string,
-    @Param('friendId') friendId: string,
+    @Param('userId', ParseUUIDPipe) userId: string,
+    @Param('friendId', ParseUUIDPipe) friendId: string,
   ) {
     try {
       const resp = await this.usersService.friendship(userId, friendId);

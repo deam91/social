@@ -19,10 +19,7 @@ export class UsersService {
 
   async create(createUserDto: UserRequestDto): Promise<UserItem> {
     try {
-      createUserDto.password = await bcrypt.hash(
-        createUserDto.password,
-        10,
-      );
+      createUserDto.password = await bcrypt.hash(createUserDto.password, 10);
       return this.userItemRepository.save(createUserDto);
     } catch (e) {
       throw new InternalServerErrorException();
