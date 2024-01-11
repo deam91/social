@@ -1,10 +1,14 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { PostsModule } from './posts/posts.module';
 import { UsersModule } from './users/users.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import * as process from 'process';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { WrapResponseInterceptor } from './core/interceptors/wrap-response.interceptor';
+import { RetryInterceptor } from './core/interceptors/retry.interceptor';
+import { LoggingMiddleware } from './core/middlewares/logging.middleware';
 
 @Module({
   imports: [
@@ -26,5 +30,20 @@ import * as process from 'process';
     PostsModule,
     UsersModule,
   ],
+  providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: RetryInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: WrapResponseInterceptor,
+    },
+  ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  /* Apply logging middleware to all routes to see requests times */
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(LoggingMiddleware).forRoutes('*');
+  }
+}
